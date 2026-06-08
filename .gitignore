@@ -1,0 +1,24 @@
+# Python / backend
+backend/.env/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+backend/*.egg-info/
+backend/dist/
+backend/build/
+*.db-shm
+*.db-wal
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
