@@ -14,6 +14,7 @@ import ReportsDashboard from './pages/ReportsDashboard'
 import UnassignedTeamMembers from './pages/UnassignedTeamMembers'
 import EmployeesWithoutSupervisor from './pages/EmployeesWithoutSupervisor'
 import SupervisorTeamSummary from './pages/SupervisorTeamSummary'
+import CompetencyReport from './pages/CompetencyReport'
 
 const theme = createTheme({
   palette: {
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="reports/unassigned-team-members" element={<UnassignedTeamMembers />} />
             <Route path="reports/employees-without-supervisor" element={<EmployeesWithoutSupervisor />} />
             <Route path="reports/supervisor-team-summary" element={<SupervisorTeamSummary />} />
+            <Route path="reports/competency-team-members" element={<CompetencyReport />} />
           </Route>
         </Routes>
       </BrowserRouter>

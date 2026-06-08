@@ -77,6 +77,7 @@ export interface WorkPackage {
   start_date: string
   end_date?: string | null
   owners: WorkPackageOwner[]
+  assignment_count: number
 }
 
 export interface WorkPackageAssignment {

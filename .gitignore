@@ -7,6 +7,7 @@ backend/**/*.pyc
 backend/*.egg-info/
 backend/dist/
 backend/build/
+*.db
 *.db-shm
 *.db-wal
 

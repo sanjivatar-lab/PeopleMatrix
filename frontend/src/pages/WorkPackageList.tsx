@@ -5,7 +5,7 @@ import {
   DialogContent, DialogTitle, IconButton, Paper, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography,
 } from '@mui/material'
-import { Add, Assignment, Delete, Edit } from '@mui/icons-material'
+import { Add, Assignment, Delete, Edit, People } from '@mui/icons-material'
 import workPackageService from '../services/workPackageService'
 import type { WorkPackage } from '../types'
 
@@ -64,13 +64,14 @@ export default function WorkPackageList() {
                 <TableCell>Start Date</TableCell>
                 <TableCell>End Date</TableCell>
                 <TableCell>Owners</TableCell>
+                <TableCell align="center">Team Members</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {packages.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     No work packages found. Click "Add Work Package" to create one.
                   </TableCell>
                 </TableRow>
@@ -89,6 +90,15 @@ export default function WorkPackageList() {
                           <Chip key={o.id} label={o.employee_name} size="small" color="primary" variant="outlined" />
                         ))}
                       </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        icon={<People fontSize="small" />}
+                        label={wp.assignment_count}
+                        size="small"
+                        color={wp.assignment_count > 0 ? 'success' : 'default'}
+                        variant={wp.assignment_count > 0 ? 'filled' : 'outlined'}
+                      />
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title="Manage Assignments">

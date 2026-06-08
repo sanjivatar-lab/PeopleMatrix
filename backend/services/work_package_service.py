@@ -19,6 +19,7 @@ def _serialize_wp(wp: WorkPackage) -> dict:
             {"id": o.id, "emp_id": o.emp_id, "employee_name": o.employee.full_name}
             for o in wp.owners
         ],
+        "assignment_count": len(wp.assignments),
     }
 
 

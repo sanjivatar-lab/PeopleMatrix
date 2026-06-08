@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Box, Card, CardActionArea, CardContent, Typography,
 } from '@mui/material'
-import { AccountTree, Groups, PersonOff } from '@mui/icons-material'
+import { AccountTree, Groups, PersonOff, Psychology } from '@mui/icons-material'
 
 const REPORTS = [
   {
@@ -25,6 +25,13 @@ const REPORTS = [
     description:
       'Shows each supervisor with their team member count. Click the count to drill down into the full team list.',
     icon: <Groups sx={{ fontSize: 40 }} color="success" />,
+  },
+  {
+    path: '/reports/competency-team-members',
+    title: 'Team Members by Competency',
+    description:
+      'Search by one or more competencies to see which team members have them. Shows matched and all competencies per member.',
+    icon: <Psychology sx={{ fontSize: 40 }} color="warning" />,
   },
 ]
 
