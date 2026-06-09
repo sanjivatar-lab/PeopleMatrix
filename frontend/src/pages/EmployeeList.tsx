@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Alert, Box, Button, Chip, CircularProgress, IconButton, InputAdornment,
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination,
-  TableRow, TextField, Typography,
+  Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton,
+  InputAdornment, InputLabel, MenuItem, Paper, Select, Table, TableBody,
+  TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField,
+  Typography,
 } from '@mui/material'
 import { Add, Delete, Edit, Search } from '@mui/icons-material'
 import { employeeService } from '../services/employeeService'
 import type { Employee } from '../types'
+
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 export default function EmployeeList() {
   const navigate = useNavigate()
@@ -16,6 +19,7 @@ export default function EmployeeList() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [search, setSearch] = useState('')
+  const [bloodGroupFilter, setBloodGroupFilter] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -23,7 +27,11 @@ export default function EmployeeList() {
     setLoading(true)
     setError('')
     try {
-      const res = await employeeService.getAll(page + 1, rowsPerPage, search || undefined)
+      const res = await employeeService.getAll(
+        page + 1, rowsPerPage,
+        search || undefined,
+        bloodGroupFilter || undefined,
+      )
       setEmployees(res.employees)
       setTotal(res.total)
     } catch (e: unknown) {
@@ -31,7 +39,7 @@ export default function EmployeeList() {
     } finally {
       setLoading(false)
     }
-  }, [page, rowsPerPage, search])
+  }, [page, rowsPerPage, search, bloodGroupFilter])
 
   useEffect(() => { fetchEmployees() }, [fetchEmployees])
 
@@ -56,13 +64,28 @@ export default function EmployeeList() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-      <TextField
-        fullWidth placeholder="Search by name, email, or native place…"
-        value={search}
-        onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-        InputProps={{ startAdornment: <InputAdornment position="start"><Search /></InputAdornment> }}
-        sx={{ mb: 2 }}
-      />
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <TextField
+          fullWidth
+          placeholder="Search by name, email, or native place…"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><Search /></InputAdornment> }}
+        />
+        <FormControl sx={{ minWidth: 170 }}>
+          <InputLabel>Blood Group</InputLabel>
+          <Select
+            label="Blood Group"
+            value={bloodGroupFilter}
+            onChange={(e) => { setBloodGroupFilter(e.target.value); setPage(0) }}
+          >
+            <MenuItem value=""><em>All</em></MenuItem>
+            {BLOOD_GROUPS.map((bg) => (
+              <MenuItem key={bg} value={bg}>{bg}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
       <Paper>
         <TableContainer>
@@ -75,19 +98,20 @@ export default function EmployeeList() {
                 <TableCell><strong>Mobile</strong></TableCell>
                 <TableCell><strong>Native Place</strong></TableCell>
                 <TableCell><strong>Experience</strong></TableCell>
+                <TableCell><strong>Blood Group</strong></TableCell>
                 <TableCell align="center"><strong>Actions</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                     <CircularProgress size={28} />
                   </TableCell>
                 </TableRow>
               ) : employees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     No employees found
                   </TableCell>
                 </TableRow>
@@ -104,6 +128,11 @@ export default function EmployeeList() {
                         label={`${emp.years_of_experience} yrs`}
                         size="small" color="info" variant="outlined"
                       />
+                    </TableCell>
+                    <TableCell>
+                      {emp.blood_group
+                        ? <Chip label={emp.blood_group} size="small" color="error" variant="outlined" />
+                        : '—'}
                     </TableCell>
                     <TableCell align="center">
                       <IconButton

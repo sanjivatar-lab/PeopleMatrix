@@ -1,5 +1,5 @@
 import api from './api'
-import type { WorkPackage, WorkPackageAssignment, PotentialOwner } from '../types'
+import type { WorkPackage, WorkPackageAssignment, PotentialOwner, WpActivity, WpBlocker } from '../types'
 
 export interface WorkPackagePayload {
   name: string
@@ -32,6 +32,10 @@ const workPackageService = {
     return api.put(`/work-packages/${id}`, payload).then((r) => r.data)
   },
 
+  updateStatus(id: number, status: string | null): Promise<WorkPackage> {
+    return api.put(`/work-packages/${id}`, { status }).then((r) => r.data)
+  },
+
   delete(id: number): Promise<void> {
     return api.delete(`/work-packages/${id}`).then(() => {})
   },
@@ -54,6 +58,34 @@ const workPackageService = {
 
   getPotentialOwners(): Promise<PotentialOwner[]> {
     return api.get('/roles/potential-owners').then((r) => r.data)
+  },
+
+  // Activities
+  getActivities(wpId: number): Promise<WpActivity[]> {
+    return api.get(`/work-packages/${wpId}/activities`).then((r) => r.data)
+  },
+  addActivity(wpId: number, payload: { description: string; status: string }): Promise<WpActivity> {
+    return api.post(`/work-packages/${wpId}/activities`, payload).then((r) => r.data)
+  },
+  updateActivity(wpId: number, actId: number, payload: { description?: string; status?: string }): Promise<WpActivity> {
+    return api.put(`/work-packages/${wpId}/activities/${actId}`, payload).then((r) => r.data)
+  },
+  deleteActivity(wpId: number, actId: number): Promise<void> {
+    return api.delete(`/work-packages/${wpId}/activities/${actId}`).then(() => {})
+  },
+
+  // Blockers
+  getBlockers(wpId: number): Promise<WpBlocker[]> {
+    return api.get(`/work-packages/${wpId}/blockers`).then((r) => r.data)
+  },
+  addBlocker(wpId: number, payload: { description: string; raised_on?: string | null }): Promise<WpBlocker> {
+    return api.post(`/work-packages/${wpId}/blockers`, payload).then((r) => r.data)
+  },
+  updateBlocker(wpId: number, blockerId: number, payload: { description?: string; status?: string; raised_on?: string | null; resolved_on?: string | null }): Promise<WpBlocker> {
+    return api.put(`/work-packages/${wpId}/blockers/${blockerId}`, payload).then((r) => r.data)
+  },
+  deleteBlocker(wpId: number, blockerId: number): Promise<void> {
+    return api.delete(`/work-packages/${wpId}/blockers/${blockerId}`).then(() => {})
   },
 }
 

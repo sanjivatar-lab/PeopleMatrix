@@ -45,6 +45,7 @@ def process_bulk_upload(db: Session, content: bytes, filename: str) -> dict:
             native = str(row.get("native_place", "") or "").strip() or None
             exp_raw = row.get("years_of_experience", 0)
             exp = float(exp_raw) if pd.notna(exp_raw) else 0.0
+            blood_group = str(row.get("blood_group", "") or "").strip().upper() or None
 
             existing = db.query(Employee).filter(Employee.email == email).first()
             if existing:
@@ -53,6 +54,7 @@ def process_bulk_upload(db: Session, content: bytes, filename: str) -> dict:
                 existing.mobile_number = mobile
                 existing.native_place = native
                 existing.years_of_experience = exp
+                existing.blood_group = blood_group
                 results["updated"] += 1
             else:
                 db.add(Employee(
@@ -62,6 +64,7 @@ def process_bulk_upload(db: Session, content: bytes, filename: str) -> dict:
                     mobile_number=mobile,
                     native_place=native,
                     years_of_experience=exp,
+                    blood_group=blood_group,
                 ))
                 results["created"] += 1
 

@@ -2,7 +2,7 @@ from .employee import Employee
 from .role import Role, EmployeeRole
 from .supervisor import SupervisorMapping
 from .competency import Competency, EmployeeCompetency
-from .work_package import WorkPackage, WorkPackageOwner, WorkPackageAssignment
+from .work_package import WorkPackage, WorkPackageOwner, WorkPackageAssignment, WorkPackageActivity, WorkPackageBlocker
 
 __all__ = [
     "Employee",
@@ -14,4 +14,6 @@ __all__ = [
     "WorkPackage",
     "WorkPackageOwner",
     "WorkPackageAssignment",
+    "WorkPackageActivity",
+    "WorkPackageBlocker",
 ]

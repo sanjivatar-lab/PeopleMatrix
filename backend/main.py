@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from database.database import engine, SessionLocal, Base
 import models  # registers all ORM models
@@ -38,6 +39,18 @@ def _seed(db):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    # Add blood_group column to existing databases that predate this field
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE employees ADD COLUMN blood_group VARCHAR(10)"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
+        try:
+            conn.execute(text("ALTER TABLE work_packages ADD COLUMN status VARCHAR(50)"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
     db = SessionLocal()
     try:
         _seed(db)

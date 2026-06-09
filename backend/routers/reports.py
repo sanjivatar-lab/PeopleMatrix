@@ -16,32 +16,42 @@ router = APIRouter()
 
 @router.get("/unassigned-team-members")
 def unassigned_team_members(db: Session = Depends(get_db)):
-    """Team Members who have no active (current or future) work package assignment."""
-    active_emp_ids = (
+    """Team Members with no currently active work package assignment.
+
+    An assignment is active today only when:
+        start_date <= today AND (end_date IS NULL OR end_date >= today)
+    Members whose every assignment is either in the past or not yet started
+    are also included in this report.
+    """
+    today = _date.today()
+
+    active_rows = (
         db.query(WorkPackageAssignment.emp_id)
         .filter(
+            WorkPackageAssignment.start_date <= today,
             or_(
                 WorkPackageAssignment.end_date.is_(None),
-                WorkPackageAssignment.end_date >= _date.today(),
-            )
+                WorkPackageAssignment.end_date >= today,
+            ),
         )
         .distinct()
-        .subquery()
+        .all()
     )
+    active_emp_ids = [r[0] for r in active_rows]
 
-    employees = (
+    query = (
         db.query(Employee)
         .join(EmployeeRole, Employee.emp_id == EmployeeRole.emp_id)
         .join(Role, EmployeeRole.role_id == Role.id)
         .filter(Role.name == "Team Member")
-        .filter(Employee.emp_id.notin_(db.query(active_emp_ids.c.emp_id)))
         .order_by(Employee.first_name, Employee.last_name)
-        .all()
     )
+    if active_emp_ids:
+        query = query.filter(Employee.emp_id.notin_(active_emp_ids))
 
     return [
         {"emp_id": e.emp_id, "full_name": e.full_name, "email": e.email}
-        for e in employees
+        for e in query.all()
     ]
 
 

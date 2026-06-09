@@ -13,6 +13,7 @@ class Employee(Base):
     mobile_number = Column(String(20), nullable=True)
     native_place = Column(String(200), nullable=True)
     years_of_experience = Column(Float, default=0.0)
+    blood_group = Column(String(10), nullable=True)
 
     @property
     def full_name(self) -> str:

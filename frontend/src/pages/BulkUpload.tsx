@@ -38,9 +38,9 @@ export default function BulkUpload() {
 
   const downloadTemplate = () => {
     const csv = [
-      'first_name,last_name,email,mobile_number,native_place,years_of_experience',
-      'Alice,Smith,alice.smith@acme.com,9876543210,Mumbai,5',
-      'Bob,Jones,bob.jones@acme.com,,Delhi,3.5',
+      'first_name,last_name,email,mobile_number,native_place,years_of_experience,blood_group',
+      'Alice,Smith,alice.smith@acme.com,9876543210,Mumbai,5,B+',
+      'Bob,Jones,bob.jones@acme.com,,Delhi,3.5,O+',
     ].join('\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     const a = document.createElement('a')

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
+  Alert, Badge, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, IconButton, Paper, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography,
 } from '@mui/material'
-import { Add, Assignment, Delete, Edit, People } from '@mui/icons-material'
+import { Add, Assignment, Block, Circle, Delete, Edit, EventNote, People } from '@mui/icons-material'
 import workPackageService from '../services/workPackageService'
 import type { WorkPackage } from '../types'
+import WorkPackageActivityModal from './WorkPackageActivityModal'
+import WorkPackageBlockerModal from './WorkPackageBlockerModal'
+import WorkPackageStatusModal, { WP_STATUSES } from './WorkPackageStatusModal'
 
 export default function WorkPackageList() {
   const navigate = useNavigate()
@@ -16,6 +19,9 @@ export default function WorkPackageList() {
   const [error, setError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<WorkPackage | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [activityWp, setActivityWp] = useState<WorkPackage | null>(null)
+  const [blockerWp, setBlockerWp] = useState<WorkPackage | null>(null)
+  const [statusWp, setStatusWp] = useState<WorkPackage | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -37,6 +43,21 @@ export default function WorkPackageList() {
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setDeleting(false))
+  }
+
+  // After closing a modal, refresh the list so counts stay in sync
+  const handleActivityClose = () => {
+    setActivityWp(null)
+    load()
+  }
+
+  const handleBlockerClose = () => {
+    setBlockerWp(null)
+    load()
+  }
+
+  const handleStatusUpdated = (updated: WorkPackage) => {
+    setPackages((prev) => prev.map((p) => (p.id === updated.id ? { ...p, status: updated.status } : p)))
   }
 
   return (
@@ -64,14 +85,17 @@ export default function WorkPackageList() {
                 <TableCell>Start Date</TableCell>
                 <TableCell>End Date</TableCell>
                 <TableCell>Owners</TableCell>
+                <TableCell align="center">Status</TableCell>
                 <TableCell align="center">Team Members</TableCell>
+                <TableCell align="center">Activities</TableCell>
+                <TableCell align="center">Blockers</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {packages.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={10} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     No work packages found. Click "Add Work Package" to create one.
                   </TableCell>
                 </TableRow>
@@ -79,7 +103,7 @@ export default function WorkPackageList() {
                 packages.map((wp) => (
                   <TableRow key={wp.id} hover>
                     <TableCell sx={{ fontWeight: 500 }}>{wp.name}</TableCell>
-                    <TableCell sx={{ maxWidth: 240, color: 'text.secondary' }}>
+                    <TableCell sx={{ maxWidth: 200, color: 'text.secondary' }}>
                       {wp.description || '—'}
                     </TableCell>
                     <TableCell>{wp.start_date}</TableCell>
@@ -91,6 +115,44 @@ export default function WorkPackageList() {
                         ))}
                       </Box>
                     </TableCell>
+
+                    {/* Status */}
+                    <TableCell align="center">
+                      {(() => {
+                        const meta = WP_STATUSES.find((s) => s.value === wp.status)
+                        return (
+                          <Tooltip title={meta ? `Status: ${meta.label}` : 'Click to set status'}>
+                            <Box
+                              component="button"
+                              onClick={() => setStatusWp(wp)}
+                              sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.75,
+                                px: 1.5,
+                                py: 0.5,
+                                borderRadius: '16px',
+                                border: '1.5px solid',
+                                borderColor: meta ? meta.color : 'grey.400',
+                                bgcolor: meta ? `${meta.color}18` : 'transparent',
+                                color: meta ? meta.color : 'text.secondary',
+                                fontSize: '0.8125rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'filter .15s',
+                                '&:hover': { filter: 'brightness(0.9)' },
+                              }}
+                            >
+                              <Circle sx={{ fontSize: 10 }} />
+                              {meta ? meta.label : 'Set Status'}
+                            </Box>
+                          </Tooltip>
+                        )
+                      })()}
+                    </TableCell>
+
+                    {/* Team Members count */}
                     <TableCell align="center">
                       <Chip
                         icon={<People fontSize="small" />}
@@ -100,6 +162,48 @@ export default function WorkPackageList() {
                         variant={wp.assignment_count > 0 ? 'filled' : 'outlined'}
                       />
                     </TableCell>
+
+                    {/* Activities button */}
+                    <TableCell align="center">
+                      <Tooltip title={`Activities (${wp.activity_count})`}>
+                        <IconButton
+                          size="small"
+                          onClick={() => setActivityWp(wp)}
+                          sx={{ color: 'secondary.main' }}
+                        >
+                          <Badge
+                            badgeContent={wp.activity_count}
+                            color="secondary"
+                            max={99}
+                            showZero={false}
+                          >
+                            <EventNote fontSize="small" />
+                          </Badge>
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+
+                    {/* Blockers button */}
+                    <TableCell align="center">
+                      <Tooltip title={`Blockers (${wp.blocker_count})`}>
+                        <IconButton
+                          size="small"
+                          onClick={() => setBlockerWp(wp)}
+                          sx={{ color: wp.blocker_count > 0 ? 'error.main' : 'text.secondary' }}
+                        >
+                          <Badge
+                            badgeContent={wp.blocker_count}
+                            color="error"
+                            max={99}
+                            showZero={false}
+                          >
+                            <Block fontSize="small" />
+                          </Badge>
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+
+                    {/* Actions */}
                     <TableCell align="center">
                       <Tooltip title="Manage Assignments">
                         <IconButton
@@ -133,6 +237,7 @@ export default function WorkPackageList() {
         </TableContainer>
       )}
 
+      {/* Delete confirmation */}
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Delete Work Package</DialogTitle>
         <DialogContent>
@@ -145,6 +250,33 @@ export default function WorkPackageList() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Activity modal */}
+      {activityWp && (
+        <WorkPackageActivityModal
+          wpId={activityWp.id}
+          wpName={activityWp.name}
+          onClose={handleActivityClose}
+        />
+      )}
+
+      {/* Blocker modal */}
+      {blockerWp && (
+        <WorkPackageBlockerModal
+          wpId={blockerWp.id}
+          wpName={blockerWp.name}
+          onClose={handleBlockerClose}
+        />
+      )}
+
+      {/* Status modal */}
+      {statusWp && (
+        <WorkPackageStatusModal
+          wp={statusWp}
+          onClose={() => setStatusWp(null)}
+          onUpdated={handleStatusUpdated}
+        />
+      )}
     </Box>
   )
 }

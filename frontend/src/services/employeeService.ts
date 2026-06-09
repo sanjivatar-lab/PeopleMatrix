@@ -4,9 +4,10 @@ import type { Employee, EmployeeListResponse } from '../types'
 type EmployeePayload = Omit<Employee, 'emp_id' | 'full_name'>
 
 export const employeeService = {
-  getAll: (page = 1, pageSize = 10, search?: string): Promise<EmployeeListResponse> => {
+  getAll: (page = 1, pageSize = 10, search?: string, bloodGroup?: string): Promise<EmployeeListResponse> => {
     const params: Record<string, unknown> = { page, page_size: pageSize }
     if (search) params.search = search
+    if (bloodGroup) params.blood_group = bloodGroup
     return api.get('/employees/', { params }).then((r) => r.data)
   },
 

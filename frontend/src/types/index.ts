@@ -7,6 +7,7 @@ export interface Employee {
   mobile_number?: string
   native_place?: string
   years_of_experience: number
+  blood_group?: string | null
 }
 
 export interface EmployeeListResponse {
@@ -76,8 +77,28 @@ export interface WorkPackage {
   description?: string | null
   start_date: string
   end_date?: string | null
+  status?: string | null
   owners: WorkPackageOwner[]
   assignment_count: number
+  activity_count: number
+  blocker_count: number
+}
+
+export interface WpActivity {
+  id: number
+  work_package_id: number
+  description: string
+  status: string
+  created_at: string
+}
+
+export interface WpBlocker {
+  id: number
+  work_package_id: number
+  description: string
+  status: string
+  raised_on?: string | null
+  resolved_on?: string | null
 }
 
 export interface WorkPackageAssignment {

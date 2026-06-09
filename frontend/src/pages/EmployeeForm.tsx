@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  Alert, Box, Button, CircularProgress, Grid, Paper, TextField, Typography,
+  Alert, Box, Button, CircularProgress, FormControl, Grid, InputLabel,
+  MenuItem, Paper, Select, TextField, Typography,
 } from '@mui/material'
 import { ArrowBack, Save } from '@mui/icons-material'
 import { employeeService } from '../services/employeeService'
+
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 interface FormState {
   first_name: string
@@ -13,11 +16,13 @@ interface FormState {
   mobile_number: string
   native_place: string
   years_of_experience: string
+  blood_group: string
 }
 
 const EMPTY: FormState = {
   first_name: '', last_name: '', email: '',
   mobile_number: '', native_place: '', years_of_experience: '0',
+  blood_group: '',
 }
 
 type Errors = Partial<Record<keyof FormState, string>>
@@ -44,6 +49,7 @@ export default function EmployeeForm() {
           mobile_number: emp.mobile_number || '',
           native_place: emp.native_place || '',
           years_of_experience: String(emp.years_of_experience),
+          blood_group: emp.blood_group || '',
         })
       })
       .catch((e: Error) => setSubmitError(e.message))
@@ -79,6 +85,7 @@ export default function EmployeeForm() {
       mobile_number: form.mobile_number.trim() || undefined,
       native_place: form.native_place.trim() || undefined,
       years_of_experience: parseFloat(form.years_of_experience),
+      blood_group: form.blood_group || undefined,
     }
 
     try {
@@ -149,6 +156,21 @@ export default function EmployeeForm() {
                 value={form.years_of_experience} onChange={set('years_of_experience')}
                 error={!!errors.years_of_experience} helperText={errors.years_of_experience}
               />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Blood Group</InputLabel>
+                <Select
+                  value={form.blood_group}
+                  label="Blood Group"
+                  onChange={(e) => setForm((prev) => ({ ...prev, blood_group: e.target.value }))}
+                >
+                  <MenuItem value=""><em>Not specified</em></MenuItem>
+                  {BLOOD_GROUPS.map((bg) => (
+                    <MenuItem key={bg} value={bg}>{bg}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>

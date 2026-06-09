@@ -2,19 +2,30 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Alert, Autocomplete, Box, Button, Chip, CircularProgress, Dialog,
-  DialogActions, DialogContent, DialogTitle, IconButton, Paper,
+  DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TextField, Tooltip, Typography,
 } from '@mui/material'
-import { ArrowBack, AssignmentInd, CheckCircle } from '@mui/icons-material'
+import { ArrowBack, AssignmentInd, CheckCircle, Schedule } from '@mui/icons-material'
+import { Circle } from '@mui/icons-material'
 import api from '../services/api'
 import workPackageService from '../services/workPackageService'
 import type { WorkPackage } from '../types'
+import { WP_STATUSES } from './WorkPackageStatusModal'
 
 interface UnassignedEmployee {
   emp_id: number
   full_name: string
   email: string
+}
+
+interface EmpWpAssignment {
+  id: number
+  work_package_id: number
+  work_package_name: string
+  work_package_status: string | null
+  start_date: string
+  end_date: string | null
 }
 
 interface AssignDialog {
@@ -23,6 +34,8 @@ interface AssignDialog {
   start_date: string
   end_date: string
 }
+
+const today = new Date().toISOString().split('T')[0]
 
 export default function UnassignedTeamMembers() {
   const navigate = useNavigate()
@@ -34,6 +47,10 @@ export default function UnassignedTeamMembers() {
 
   const [dialog, setDialog] = useState<AssignDialog | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Future assignments for the employee currently in the dialog
+  const [futureAssignments, setFutureAssignments] = useState<EmpWpAssignment[]>([])
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -55,6 +72,17 @@ export default function UnassignedTeamMembers() {
     setDialog({ employee: emp, workPackage: null, start_date: '', end_date: '' })
     setError('')
     setSuccess('')
+    setFutureAssignments([])
+    setAssignmentsLoading(true)
+    api
+      .get(`/employees/${emp.emp_id}/wp-assignments`)
+      .then((r) => {
+        const all = r.data as EmpWpAssignment[]
+        // keep only assignments whose start_date is in the future
+        setFutureAssignments(all.filter((a) => a.start_date > today))
+      })
+      .catch(() => setFutureAssignments([]))
+      .finally(() => setAssignmentsLoading(false))
   }
 
   const wpStartDate = dialog?.workPackage?.start_date ?? ''
@@ -95,6 +123,12 @@ export default function UnassignedTeamMembers() {
       .finally(() => setSaving(false))
   }
 
+  const closeDialog = () => {
+    setDialog(null)
+    setError('')
+    setFutureAssignments([])
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
@@ -107,17 +141,12 @@ export default function UnassignedTeamMembers() {
       </Box>
 
       <Typography variant="body2" color="text.secondary" mb={2}>
-        Team Members below have no active work package assignment. Click the assign button to add
-        them to a work package.
+        Team Members below have no active work package assignment. Click the assign button to view
+        their upcoming assignments and assign them to a work package.
       </Typography>
 
       {success && (
-        <Alert
-          severity="success"
-          icon={<CheckCircle />}
-          sx={{ mb: 2 }}
-          onClose={() => setSuccess('')}
-        >
+        <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2 }} onClose={() => setSuccess('')}>
           {success}
         </Alert>
       )}
@@ -154,7 +183,7 @@ export default function UnassignedTeamMembers() {
                       <Chip label="Unassigned" color="warning" size="small" variant="outlined" />
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Assign to Work Package">
+                      <Tooltip title="View future assignments & assign">
                         <IconButton color="primary" size="small" onClick={() => openDialog(emp)}>
                           <AssignmentInd fontSize="small" />
                         </IconButton>
@@ -169,70 +198,134 @@ export default function UnassignedTeamMembers() {
       )}
 
       {/* Assign dialog */}
-      <Dialog
-        open={!!dialog}
-        onClose={() => { setDialog(null); setError('') }}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={!!dialog} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           Assign <strong>{dialog?.employee.full_name}</strong> to a Work Package
         </DialogTitle>
 
-        <DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {error && <Alert severity="error">{error}</Alert>}
+        <DialogContent sx={{ pt: 2 }}>
 
-          <Autocomplete
-            options={workPackages}
-            getOptionLabel={(wp) =>
-              `${wp.name}  (${wp.start_date} – ${wp.end_date || 'ongoing'})`
-            }
-            value={dialog?.workPackage ?? null}
-            onChange={(_, wp) => {
-              setError('')
-              setDialog((d) => d ? { ...d, workPackage: wp, start_date: '', end_date: '' } : d)
-            }}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            renderInput={(params) => <TextField {...params} label="Work Package *" />}
-            noOptionsText="No work packages found"
-          />
+          {/* ── Future Assignments section ───────────────────────────────── */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Schedule fontSize="small" color="action" />
+              <Typography variant="subtitle2" color="text.secondary">
+                Future Work Package Assignments
+              </Typography>
+            </Box>
 
-          {dialog?.workPackage && (
-            <Alert severity="info" sx={{ py: 0.5 }}>
-              Work package dates: <strong>{dialog.workPackage.start_date}</strong> –{' '}
-              <strong>{dialog.workPackage.end_date || 'ongoing'}</strong>
-            </Alert>
-          )}
+            {assignmentsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={22} />
+              </Box>
+            ) : futureAssignments.length === 0 ? (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ py: 1.5, px: 2, bgcolor: 'grey.50', borderRadius: 1, fontStyle: 'italic' }}
+              >
+                No future assignments scheduled for this team member.
+              </Typography>
+            ) : (
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: 'grey.100' }}>
+                      <TableCell sx={{ fontWeight: 600 }}>Work Package</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Start</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>End</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>WP Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {futureAssignments.map((a) => {
+                      const statusMeta = WP_STATUSES.find((s) => s.value === a.work_package_status)
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell sx={{ fontWeight: 500 }}>{a.work_package_name}</TableCell>
+                          <TableCell>{a.start_date}</TableCell>
+                          <TableCell>{a.end_date ?? <em style={{ color: '#888' }}>Ongoing</em>}</TableCell>
+                          <TableCell>
+                            {statusMeta ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <Circle sx={{ fontSize: 10, color: statusMeta.color }} />
+                                <Typography variant="body2" sx={{ color: statusMeta.color, fontWeight: 600 }}>
+                                  {statusMeta.label}
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.disabled">—</Typography>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Box>
 
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField
-              label="Start Date *"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={dialog?.start_date ?? ''}
-              onChange={(e) => setDialog((d) => d ? { ...d, start_date: e.target.value } : d)}
-              inputProps={{ min: wpStartDate, max: wpEndDate || undefined }}
-              disabled={!dialog?.workPackage}
-            />
-            <TextField
-              label="End Date"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={dialog?.end_date ?? ''}
-              onChange={(e) => setDialog((d) => d ? { ...d, end_date: e.target.value } : d)}
-              inputProps={{
-                min: dialog?.start_date || wpStartDate,
-                max: wpEndDate || undefined,
+          <Divider sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary">Assign to another work package</Typography>
+          </Divider>
+
+          {/* ── Assign form ──────────────────────────────────────────────── */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {error && <Alert severity="error">{error}</Alert>}
+
+            <Autocomplete
+              options={workPackages}
+              getOptionLabel={(wp) =>
+                `${wp.name}  (${wp.start_date} – ${wp.end_date || 'ongoing'})`
+              }
+              value={dialog?.workPackage ?? null}
+              onChange={(_, wp) => {
+                setError('')
+                setDialog((d) => d ? { ...d, workPackage: wp, start_date: '', end_date: '' } : d)
               }}
-              disabled={!dialog?.workPackage}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              renderInput={(params) => <TextField {...params} label="Work Package *" />}
+              noOptionsText="No work packages found"
             />
+
+            {dialog?.workPackage && (
+              <Alert severity="info" sx={{ py: 0.5 }}>
+                Work package dates: <strong>{dialog.workPackage.start_date}</strong> –{' '}
+                <strong>{dialog.workPackage.end_date || 'ongoing'}</strong>
+              </Alert>
+            )}
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Start Date *"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={dialog?.start_date ?? ''}
+                onChange={(e) => setDialog((d) => d ? { ...d, start_date: e.target.value } : d)}
+                inputProps={{ min: wpStartDate, max: wpEndDate || undefined }}
+                disabled={!dialog?.workPackage}
+              />
+              <TextField
+                label="End Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={dialog?.end_date ?? ''}
+                onChange={(e) => setDialog((d) => d ? { ...d, end_date: e.target.value } : d)}
+                inputProps={{
+                  min: dialog?.start_date || wpStartDate,
+                  max: wpEndDate || undefined,
+                }}
+                disabled={!dialog?.workPackage}
+              />
+            </Box>
           </Box>
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => { setDialog(null); setError('') }}>Cancel</Button>
+          <Button onClick={closeDialog}>Cancel</Button>
           <Button
             variant="contained"
             onClick={handleAssign}

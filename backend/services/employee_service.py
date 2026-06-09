@@ -17,6 +17,7 @@ def _to_dict(emp: Employee) -> dict:
         "mobile_number": emp.mobile_number,
         "native_place": emp.native_place,
         "years_of_experience": emp.years_of_experience,
+        "blood_group": emp.blood_group,
     }
 
 
@@ -47,6 +48,7 @@ def list_employees(
     skip: int = 0,
     limit: int = 10,
     search: Optional[str] = None,
+    blood_group: Optional[str] = None,
 ) -> Tuple[int, List[dict]]:
     query = db.query(Employee)
     if search:
@@ -59,6 +61,8 @@ def list_employees(
                 Employee.native_place.ilike(term),
             )
         )
+    if blood_group:
+        query = query.filter(Employee.blood_group == blood_group.upper())
     total = query.count()
     employees = query.order_by(Employee.emp_id).offset(skip).limit(limit).all()
     return total, [_to_dict(e) for e in employees]

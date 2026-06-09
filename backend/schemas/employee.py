@@ -2,6 +2,8 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List
 
 
+VALID_BLOOD_GROUPS = {"A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"}
+
 class EmployeeBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
@@ -9,6 +11,7 @@ class EmployeeBase(BaseModel):
     mobile_number: Optional[str] = None
     native_place: Optional[str] = None
     years_of_experience: float = Field(default=0.0, ge=0)
+    blood_group: Optional[str] = None
 
 
 class EmployeeCreate(EmployeeBase):
@@ -22,6 +25,7 @@ class EmployeeUpdate(BaseModel):
     mobile_number: Optional[str] = None
     native_place: Optional[str] = None
     years_of_experience: Optional[float] = Field(None, ge=0)
+    blood_group: Optional[str] = None
 
 
 class EmployeeOut(EmployeeBase):
