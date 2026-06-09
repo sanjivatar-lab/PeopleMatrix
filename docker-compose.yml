@@ -1,0 +1,43 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: peoplematrix-backend
+    environment:
+      # SQLite database stored in the persistent volume
+      DATABASE_URL: sqlite:////app/data/hrapp.db
+      # Allow requests from the nginx frontend container
+      CORS_ORIGINS: "http://localhost,http://localhost:80"
+    volumes:
+      - hrapp_data:/app/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Vite bakes this URL into the JS bundle at build time.
+        # /api is a relative path — nginx proxies it to the backend service.
+        VITE_API_URL: /api
+    container_name: peoplematrix-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  hrapp_data:
+    name: peoplematrix_db
