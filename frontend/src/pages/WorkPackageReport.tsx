@@ -365,7 +365,107 @@ export default function WorkPackageReport() {
             />
           </Stack>
 
-          {/* 3 ─ Team Assignments ───────────────────────────────────────── */}
+          {/* 3 ─ Activities ─────────────────────────────────────────────── */}
+          <Paper sx={{ p: 2.5 }}>
+            <SectionHeader icon={<Assignment />} title="Activities" count={report.activities.length} />
+            {report.activities.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                No activities recorded for this work package.
+              </Typography>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: 'grey.50' }}>
+                      <TableCell sx={{ fontWeight: 700, width: 40 }}>#</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                      <TableCell sx={{ fontWeight: 700, width: 130 }}>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {report.activities.map((a, i) => (
+                      <TableRow key={a.id} hover sx={{ opacity: a.status === 'Done' ? 0.7 : 1 }}>
+                        <TableCell sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>{i + 1}</TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              textDecoration: a.status === 'Done' ? 'line-through' : 'none',
+                              color: a.status === 'Done' ? 'text.secondary' : 'inherit',
+                            }}
+                          >
+                            {a.description}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={a.status}
+                            size="small"
+                            color={ACTIVITY_STATUS_COLOR[a.status] ?? 'default'}
+                            sx={{ fontSize: '0.72rem', fontWeight: 600, minWidth: 90, justifyContent: 'center' }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+
+          {/* 4 ─ Blockers ────────────────────────────────────────────────── */}
+          <Paper sx={{ p: 2.5 }}>
+            <SectionHeader icon={<Warning />} title="Blockers" count={report.blockers.length} />
+            {report.blockers.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                No blockers recorded for this work package.
+              </Typography>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: 'grey.50' }}>
+                      <TableCell sx={{ fontWeight: 700, width: 40 }}>#</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                      <TableCell sx={{ fontWeight: 700, width: 120 }}>Raised On</TableCell>
+                      <TableCell sx={{ fontWeight: 700, width: 130 }}>Resolved On</TableCell>
+                      <TableCell sx={{ fontWeight: 700, width: 110 }}>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {report.blockers.map((b, i) => (
+                      <TableRow key={b.id} hover>
+                        <TableCell sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>{i + 1}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{b.description}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {b.raised_on ? fmt(b.raised_on) : '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {b.resolved_on ? fmt(b.resolved_on) : '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={b.status}
+                            size="small"
+                            color={b.status === 'Open' ? 'error' : 'success'}
+                            sx={{ fontSize: '0.72rem', fontWeight: 600, minWidth: 80, justifyContent: 'center' }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+
+          {/* 5 ─ Team Assignments ───────────────────────────────────────── */}
           <Paper sx={{ p: 2.5 }}>
             <SectionHeader icon={<Groups />} title="Team Assignments" count={report.assignments.length} />
             {report.assignments.length === 0 ? (
@@ -409,7 +509,7 @@ export default function WorkPackageReport() {
             )}
           </Paper>
 
-          {/* 4 ─ Week-wise Execution Plan ───────────────────────────────── */}
+          {/* 6 ─ Week-wise Execution Plan ───────────────────────────────── */}
           <Paper sx={{ p: 2.5 }}>
             <SectionHeader icon={<Schedule />} title="Week-wise Execution Plan" count={report.week_plans.length} />
             {report.week_plans.length === 0 ? (
@@ -573,79 +673,6 @@ export default function WorkPackageReport() {
             )}
           </Paper>
 
-          {/* 5 ─ Activities + Blockers (side-by-side on wide screens) ──── */}
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="stretch">
-
-            {/* Activities */}
-            <Paper sx={{ p: 2.5, flex: 1 }}>
-              <SectionHeader icon={<Assignment />} title="Activities" count={report.activities.length} />
-              {report.activities.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                  No activities recorded.
-                </Typography>
-              ) : (
-                <Stack spacing={0}>
-                  {report.activities.map((a, i) => (
-                    <Box
-                      key={a.id}
-                      sx={{
-                        display: 'flex', alignItems: 'flex-start', gap: 1.5,
-                        py: 1, borderBottom: i < report.activities.length - 1 ? '1px solid' : 'none',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <Chip
-                        label={a.status}
-                        size="small"
-                        color={ACTIVITY_STATUS_COLOR[a.status] ?? 'default'}
-                        sx={{ fontSize: '0.65rem', flexShrink: 0, minWidth: 82, justifyContent: 'center', mt: '1px' }}
-                      />
-                      <Typography variant="body2">{a.description}</Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              )}
-            </Paper>
-
-            {/* Blockers */}
-            <Paper sx={{ p: 2.5, flex: 1 }}>
-              <SectionHeader icon={<Warning />} title="Blockers" count={report.blockers.length} />
-              {report.blockers.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                  No blockers recorded.
-                </Typography>
-              ) : (
-                <Stack spacing={0}>
-                  {report.blockers.map((b, i) => (
-                    <Box
-                      key={b.id}
-                      sx={{
-                        py: 1, borderBottom: i < report.blockers.length - 1 ? '1px solid' : 'none',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1}>
-                        <Typography variant="body2" sx={{ flex: 1 }}>{b.description}</Typography>
-                        <Chip
-                          label={b.status}
-                          size="small"
-                          color={b.status === 'Open' ? 'error' : 'success'}
-                          sx={{ fontSize: '0.65rem', fontWeight: 600, flexShrink: 0 }}
-                        />
-                      </Stack>
-                      {(b.raised_on || b.resolved_on) && (
-                        <Typography variant="caption" color="text.disabled" sx={{ mt: 0.25, display: 'block' }}>
-                          {b.raised_on && `Raised: ${fmt(b.raised_on)}`}
-                          {b.raised_on && b.resolved_on && ' · '}
-                          {b.resolved_on && `Resolved: ${fmt(b.resolved_on)}`}
-                        </Typography>
-                      )}
-                    </Box>
-                  ))}
-                </Stack>
-              )}
-            </Paper>
-          </Stack>
         </Stack>
       )}
     </Box>
