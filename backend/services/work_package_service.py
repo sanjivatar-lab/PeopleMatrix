@@ -5,11 +5,13 @@ from fastapi import HTTPException
 from models.work_package import (
     WorkPackage, WorkPackageOwner, WorkPackageAssignment,
     WorkPackageActivity, WorkPackageBlocker,
+    WorkPackageWeekPlan, WorkPackageWeekTask, WorkPackageTaskDependency,
 )
 from models.employee import Employee
 from schemas.work_package import (
     WorkPackageCreate, WorkPackageUpdate, WorkPackageAssignmentCreate,
     ActivityCreate, ActivityUpdate, BlockerCreate, BlockerUpdate,
+    WeekPlanUpsert, WeekTaskCreate, WeekTaskUpdate,
 )
 
 
@@ -317,4 +319,142 @@ def delete_blocker(db: Session, wp_id: int, blocker_id: int) -> None:
     if not b:
         raise HTTPException(status_code=404, detail="Blocker not found")
     db.delete(b)
+    db.commit()
+
+
+# ── Week Plans ────────────────────────────────────────────────────────────────
+
+def _sync_task_dependencies(db: Session, task_id: int, dependency_ids: list) -> None:
+    db.query(WorkPackageTaskDependency).filter(
+        WorkPackageTaskDependency.task_id == task_id
+    ).delete(synchronize_session=False)
+    seen = set()
+    for dep_id in dependency_ids:
+        if dep_id != task_id and dep_id not in seen:
+            seen.add(dep_id)
+            db.add(WorkPackageTaskDependency(task_id=task_id, depends_on_task_id=dep_id))
+
+
+def _serialize_week_task(t: WorkPackageWeekTask) -> dict:
+    return {
+        "id": t.id,
+        "week_plan_id": t.week_plan_id,
+        "description": t.description,
+        "assigned_emp_id": t.assigned_emp_id,
+        "assignee_name": t.assignee.full_name if t.assignee else None,
+        "status": t.status,
+        "effort_hours": t.effort_hours,
+        "dependency_ids": [d.depends_on_task_id for d in t.dependencies],
+    }
+
+
+def _serialize_week_plan(p: WorkPackageWeekPlan) -> dict:
+    return {
+        "id": p.id,
+        "work_package_id": p.work_package_id,
+        "week_start": p.week_start,
+        "goal": p.goal,
+        "external_dependencies": p.external_dependencies,
+        "tasks": [_serialize_week_task(t) for t in p.tasks],
+    }
+
+
+def list_week_plans(db: Session, wp_id: int) -> list:
+    _get_wp_or_404(db, wp_id)
+    plans = (
+        db.query(WorkPackageWeekPlan)
+        .filter(WorkPackageWeekPlan.work_package_id == wp_id)
+        .order_by(WorkPackageWeekPlan.week_start)
+        .all()
+    )
+    return [_serialize_week_plan(p) for p in plans]
+
+
+def upsert_week_plan(db: Session, wp_id: int, data: WeekPlanUpsert) -> dict:
+    _get_wp_or_404(db, wp_id)
+    plan = (
+        db.query(WorkPackageWeekPlan)
+        .filter(
+            WorkPackageWeekPlan.work_package_id == wp_id,
+            WorkPackageWeekPlan.week_start == data.week_start,
+        )
+        .first()
+    )
+    if plan:
+        plan.goal = data.goal
+        plan.external_dependencies = data.external_dependencies
+    else:
+        plan = WorkPackageWeekPlan(
+            work_package_id=wp_id,
+            week_start=data.week_start,
+            goal=data.goal,
+            external_dependencies=data.external_dependencies,
+        )
+        db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    return _serialize_week_plan(plan)
+
+
+def add_week_task(db: Session, wp_id: int, plan_id: int, data: WeekTaskCreate) -> dict:
+    plan = (
+        db.query(WorkPackageWeekPlan)
+        .filter(WorkPackageWeekPlan.id == plan_id, WorkPackageWeekPlan.work_package_id == wp_id)
+        .first()
+    )
+    if not plan:
+        raise HTTPException(status_code=404, detail="Week plan not found")
+    task = WorkPackageWeekTask(
+        week_plan_id=plan_id,
+        description=data.description.strip(),
+        assigned_emp_id=data.assigned_emp_id,
+        status=data.status,
+        effort_hours=data.effort_hours,
+    )
+    db.add(task)
+    db.flush()
+    _sync_task_dependencies(db, task.id, data.dependency_ids)
+    db.commit()
+    db.refresh(task)
+    return _serialize_week_task(task)
+
+
+def update_week_task(db: Session, wp_id: int, plan_id: int, task_id: int, data: WeekTaskUpdate) -> dict:
+    task = (
+        db.query(WorkPackageWeekTask)
+        .join(WorkPackageWeekPlan)
+        .filter(
+            WorkPackageWeekTask.id == task_id,
+            WorkPackageWeekTask.week_plan_id == plan_id,
+            WorkPackageWeekPlan.work_package_id == wp_id,
+        )
+        .first()
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    updates = data.model_dump(exclude_unset=True)
+    dep_ids = updates.pop("dependency_ids", None)
+    for field, val in updates.items():
+        setattr(task, field, val)
+    if dep_ids is not None:
+        _sync_task_dependencies(db, task.id, dep_ids)
+    db.commit()
+    db.refresh(task)
+    return _serialize_week_task(task)
+
+
+def delete_week_task(db: Session, wp_id: int, plan_id: int, task_id: int) -> None:
+    task = (
+        db.query(WorkPackageWeekTask)
+        .join(WorkPackageWeekPlan)
+        .filter(
+            WorkPackageWeekTask.id == task_id,
+            WorkPackageWeekTask.week_plan_id == plan_id,
+            WorkPackageWeekPlan.work_package_id == wp_id,
+        )
+        .first()
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    db.delete(task)
     db.commit()

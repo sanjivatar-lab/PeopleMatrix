@@ -8,6 +8,7 @@ from schemas.work_package import (
     WorkPackageAssignmentCreate, WorkPackageAssignmentUpdate,
     ActivityCreate, ActivityUpdate,
     BlockerCreate, BlockerUpdate,
+    WeekPlanUpsert, WeekTaskCreate, WeekTaskUpdate,
 )
 import services.work_package_service as svc
 
@@ -105,3 +106,30 @@ def update_blocker(wp_id: int, blocker_id: int, data: BlockerUpdate, db: Session
 @router.delete("/{wp_id}/blockers/{blocker_id}", status_code=204)
 def delete_blocker(wp_id: int, blocker_id: int, db: Session = Depends(get_db)):
     svc.delete_blocker(db, wp_id, blocker_id)
+
+
+# ── Week Plans ────────────────────────────────────────────────────────────────
+
+@router.get("/{wp_id}/week-plans")
+def list_week_plans(wp_id: int, db: Session = Depends(get_db)):
+    return svc.list_week_plans(db, wp_id)
+
+
+@router.post("/{wp_id}/week-plans")
+def upsert_week_plan(wp_id: int, data: WeekPlanUpsert, db: Session = Depends(get_db)):
+    return svc.upsert_week_plan(db, wp_id, data)
+
+
+@router.post("/{wp_id}/week-plans/{plan_id}/tasks", status_code=201)
+def add_week_task(wp_id: int, plan_id: int, data: WeekTaskCreate, db: Session = Depends(get_db)):
+    return svc.add_week_task(db, wp_id, plan_id, data)
+
+
+@router.put("/{wp_id}/week-plans/{plan_id}/tasks/{task_id}")
+def update_week_task(wp_id: int, plan_id: int, task_id: int, data: WeekTaskUpdate, db: Session = Depends(get_db)):
+    return svc.update_week_task(db, wp_id, plan_id, task_id, data)
+
+
+@router.delete("/{wp_id}/week-plans/{plan_id}/tasks/{task_id}", status_code=204)
+def delete_week_task(wp_id: int, plan_id: int, task_id: int, db: Session = Depends(get_db)):
+    svc.delete_week_task(db, wp_id, plan_id, task_id)

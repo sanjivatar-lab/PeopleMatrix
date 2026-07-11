@@ -52,6 +52,11 @@ async def lifespan(app: FastAPI):
             conn.commit()
         except Exception:
             pass  # Column already exists
+        try:
+            conn.execute(text("ALTER TABLE wp_week_plans ADD COLUMN external_dependencies TEXT"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
     db = SessionLocal()
     try:
         _seed(db)
@@ -69,7 +74,8 @@ app = FastAPI(
 
 _cors_origins = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost,http://localhost:3000,http://localhost:5173",
+    "http://localhost,http://localhost:3000,http://localhost:4173,http://localhost:5173,"
+    "http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:4173,http://127.0.0.1:5173",
 )
 app.add_middleware(
     CORSMiddleware,

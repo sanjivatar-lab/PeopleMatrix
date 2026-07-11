@@ -5,12 +5,13 @@ import {
   DialogContent, DialogTitle, IconButton, Paper, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography,
 } from '@mui/material'
-import { Add, Assignment, Block, Circle, Delete, Edit, EventNote, People } from '@mui/icons-material'
+import { Add, Assignment, Block, CalendarMonth, Circle, Delete, Edit, EventNote, People } from '@mui/icons-material'
 import workPackageService from '../services/workPackageService'
 import type { WorkPackage } from '../types'
 import WorkPackageActivityModal from './WorkPackageActivityModal'
 import WorkPackageBlockerModal from './WorkPackageBlockerModal'
 import WorkPackageStatusModal, { WP_STATUSES } from './WorkPackageStatusModal'
+import WorkPackageWeekPlanModal from './WorkPackageWeekPlanModal'
 
 export default function WorkPackageList() {
   const navigate = useNavigate()
@@ -22,6 +23,7 @@ export default function WorkPackageList() {
   const [activityWp, setActivityWp] = useState<WorkPackage | null>(null)
   const [blockerWp, setBlockerWp] = useState<WorkPackage | null>(null)
   const [statusWp, setStatusWp] = useState<WorkPackage | null>(null)
+  const [weekPlanWp, setWeekPlanWp] = useState<WorkPackage | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -87,6 +89,7 @@ export default function WorkPackageList() {
                 <TableCell>Owners</TableCell>
                 <TableCell align="center">Status</TableCell>
                 <TableCell align="center">Team Members</TableCell>
+                <TableCell align="center">Week Plan</TableCell>
                 <TableCell align="center">Activities</TableCell>
                 <TableCell align="center">Blockers</TableCell>
                 <TableCell align="center">Actions</TableCell>
@@ -95,7 +98,7 @@ export default function WorkPackageList() {
             <TableBody>
               {packages.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={11} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     No work packages found. Click "Add Work Package" to create one.
                   </TableCell>
                 </TableRow>
@@ -161,6 +164,19 @@ export default function WorkPackageList() {
                         color={wp.assignment_count > 0 ? 'success' : 'default'}
                         variant={wp.assignment_count > 0 ? 'filled' : 'outlined'}
                       />
+                    </TableCell>
+
+                    {/* Week Plan button */}
+                    <TableCell align="center">
+                      <Tooltip title="Week-wise Plan">
+                        <IconButton
+                          size="small"
+                          onClick={() => setWeekPlanWp(wp)}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          <CalendarMonth fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
 
                     {/* Activities button */}
@@ -275,6 +291,14 @@ export default function WorkPackageList() {
           wp={statusWp}
           onClose={() => setStatusWp(null)}
           onUpdated={handleStatusUpdated}
+        />
+      )}
+
+      {/* Week Plan modal */}
+      {weekPlanWp && (
+        <WorkPackageWeekPlanModal
+          wp={weekPlanWp}
+          onClose={() => setWeekPlanWp(null)}
         />
       )}
     </Box>

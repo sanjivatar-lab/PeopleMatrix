@@ -102,3 +102,27 @@ class BlockerOut(BaseModel):
     raised_on: Optional[date] = None
     resolved_on: Optional[date] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── Week Plans ────────────────────────────────────────────────────────────────
+
+class WeekPlanUpsert(BaseModel):
+    week_start: date
+    goal: Optional[str] = None
+    external_dependencies: Optional[str] = None
+
+
+class WeekTaskCreate(BaseModel):
+    description: str
+    assigned_emp_id: Optional[int] = None
+    status: str = "Planned"
+    effort_hours: Optional[float] = None
+    dependency_ids: List[int] = []
+
+
+class WeekTaskUpdate(BaseModel):
+    description: Optional[str] = None
+    assigned_emp_id: Optional[int] = None
+    status: Optional[str] = None
+    effort_hours: Optional[float] = None
+    dependency_ids: Optional[List[int]] = None

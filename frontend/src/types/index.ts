@@ -109,3 +109,23 @@ export interface WorkPackageAssignment {
   start_date: string
   end_date?: string | null
 }
+
+export interface WeekTask {
+  id: number
+  week_plan_id: number
+  description: string
+  assigned_emp_id: number | null
+  assignee_name: string | null
+  status: string
+  effort_hours: number | null
+  dependency_ids: number[]
+}
+
+export interface WeekPlan {
+  id: number
+  work_package_id: number
+  week_start: string
+  goal: string | null
+  external_dependencies: string | null
+  tasks: WeekTask[]
+}

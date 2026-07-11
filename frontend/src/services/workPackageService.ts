@@ -1,5 +1,5 @@
 import api from './api'
-import type { WorkPackage, WorkPackageAssignment, PotentialOwner, WpActivity, WpBlocker } from '../types'
+import type { WorkPackage, WorkPackageAssignment, PotentialOwner, WpActivity, WpBlocker, WeekPlan, WeekTask } from '../types'
 
 export interface WorkPackagePayload {
   name: string
@@ -86,6 +86,23 @@ const workPackageService = {
   },
   deleteBlocker(wpId: number, blockerId: number): Promise<void> {
     return api.delete(`/work-packages/${wpId}/blockers/${blockerId}`).then(() => {})
+  },
+
+  // Week Plans
+  getWeekPlans(wpId: number): Promise<WeekPlan[]> {
+    return api.get(`/work-packages/${wpId}/week-plans`).then((r) => r.data)
+  },
+  upsertWeekPlan(wpId: number, payload: { week_start: string; goal?: string | null; external_dependencies?: string | null }): Promise<WeekPlan> {
+    return api.post(`/work-packages/${wpId}/week-plans`, payload).then((r) => r.data)
+  },
+  addWeekTask(wpId: number, planId: number, payload: { description: string; assigned_emp_id?: number | null; status: string; effort_hours?: number | null; dependency_ids?: number[] }): Promise<WeekTask> {
+    return api.post(`/work-packages/${wpId}/week-plans/${planId}/tasks`, payload).then((r) => r.data)
+  },
+  updateWeekTask(wpId: number, planId: number, taskId: number, payload: { description?: string; assigned_emp_id?: number | null; status?: string; effort_hours?: number | null; dependency_ids?: number[] }): Promise<WeekTask> {
+    return api.put(`/work-packages/${wpId}/week-plans/${planId}/tasks/${taskId}`, payload).then((r) => r.data)
+  },
+  deleteWeekTask(wpId: number, planId: number, taskId: number): Promise<void> {
+    return api.delete(`/work-packages/${wpId}/week-plans/${planId}/tasks/${taskId}`).then(() => {})
   },
 }
 
