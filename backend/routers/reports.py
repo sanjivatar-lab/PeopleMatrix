@@ -1,6 +1,6 @@
 from datetime import date as _date
 from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,11 @@ from database.database import get_db
 from models.employee import Employee
 from models.role import Role, EmployeeRole
 from models.supervisor import SupervisorMapping
-from models.work_package import WorkPackage, WorkPackageAssignment
+from models.work_package import (
+    WorkPackage, WorkPackageAssignment,
+    WorkPackageOwner, WorkPackageActivity, WorkPackageBlocker,
+    WorkPackageWeekPlan,
+)
 from models.competency import EmployeeCompetency
 
 router = APIRouter()
@@ -162,3 +166,103 @@ def competency_team_members(
             "all_competencies": all_comps,
         })
     return result
+
+
+@router.get("/work-package/{wp_id}")
+def work_package_detail_report(wp_id: int, db: Session = Depends(get_db)):
+    """Comprehensive report for a single work package: summary KPIs, team, week plans, activities, blockers."""
+    today = _date.today()
+    wp = db.query(WorkPackage).filter(WorkPackage.id == wp_id).first()
+    if not wp:
+        raise HTTPException(status_code=404, detail="Work package not found")
+
+    owners = [{"emp_id": o.emp_id, "full_name": o.employee.full_name} for o in wp.owners]
+
+    assignments = []
+    for a in sorted(wp.assignments, key=lambda x: x.start_date):
+        is_active = a.start_date <= today and (a.end_date is None or a.end_date >= today)
+        assignments.append({
+            "emp_id": a.emp_id,
+            "full_name": a.employee.full_name,
+            "start_date": a.start_date,
+            "end_date": a.end_date,
+            "is_active": is_active,
+        })
+
+    activities = [
+        {"id": a.id, "description": a.description, "status": a.status, "created_at": a.created_at}
+        for a in sorted(wp.activities, key=lambda x: x.created_at, reverse=True)
+    ]
+
+    blockers = [
+        {"id": b.id, "description": b.description, "status": b.status,
+         "raised_on": b.raised_on, "resolved_on": b.resolved_on}
+        for b in sorted(wp.blockers, key=lambda x: x.id, reverse=True)
+    ]
+
+    week_plans = []
+    total_tasks = done_tasks = blocked_tasks = 0
+    total_effort = done_effort = 0.0
+
+    for p in sorted(wp.week_plans, key=lambda x: x.week_start):
+        tasks = []
+        for t in p.tasks:
+            dep_ids = [d.depends_on_task_id for d in t.dependencies]
+            tasks.append({
+                "id": t.id,
+                "description": t.description,
+                "assignee_name": t.assignee.full_name if t.assignee else None,
+                "status": t.status,
+                "effort_hours": t.effort_hours,
+                "dependency_ids": dep_ids,
+            })
+            total_tasks += 1
+            if t.status == "Done":
+                done_tasks += 1
+                done_effort += t.effort_hours or 0
+            if t.status == "Blocked":
+                blocked_tasks += 1
+            total_effort += t.effort_hours or 0
+
+        week_plans.append({
+            "id": p.id,
+            "week_start": p.week_start,
+            "goal": p.goal,
+            "external_dependencies": p.external_dependencies,
+            "tasks": tasks,
+            "task_counts": {
+                "total": len(tasks),
+                "done": sum(1 for t in tasks if t["status"] == "Done"),
+                "in_progress": sum(1 for t in tasks if t["status"] == "In Progress"),
+                "blocked": sum(1 for t in tasks if t["status"] == "Blocked"),
+                "planned": sum(1 for t in tasks if t["status"] == "Planned"),
+            },
+        })
+
+    open_blockers = sum(1 for b in blockers if b["status"] == "Open")
+    done_activities = sum(1 for a in activities if a["status"] == "Done")
+
+    return {
+        "id": wp.id,
+        "name": wp.name,
+        "description": wp.description,
+        "status": wp.status,
+        "start_date": wp.start_date,
+        "end_date": wp.end_date,
+        "owners": owners,
+        "assignments": assignments,
+        "activities": activities,
+        "blockers": blockers,
+        "week_plans": week_plans,
+        "summary_stats": {
+            "total_tasks": total_tasks,
+            "done_tasks": done_tasks,
+            "blocked_tasks": blocked_tasks,
+            "total_effort_hours": round(total_effort, 1),
+            "done_effort_hours": round(done_effort, 1),
+            "open_blockers": open_blockers,
+            "total_activities": len(activities),
+            "done_activities": done_activities,
+            "active_members": sum(1 for a in assignments if a["is_active"]),
+        },
+    }

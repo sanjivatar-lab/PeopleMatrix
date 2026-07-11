@@ -2,9 +2,16 @@ import { useNavigate } from 'react-router-dom'
 import {
   Box, Card, CardActionArea, CardContent, Typography,
 } from '@mui/material'
-import { AccountTree, Groups, PersonOff, Psychology } from '@mui/icons-material'
+import { AccountTree, Assessment, Groups, PersonOff, Psychology } from '@mui/icons-material'
 
 const REPORTS = [
+  {
+    path: '/reports/work-package',
+    title: 'Work Package Detail Report',
+    description:
+      'Comprehensive report for any work package: KPI summary, team assignments, week-wise execution plan with tasks, activities, and blockers.',
+    icon: <Assessment sx={{ fontSize: 40 }} color="info" />,
+  },
   {
     path: '/reports/unassigned-team-members',
     title: 'Unassigned Team Members',
